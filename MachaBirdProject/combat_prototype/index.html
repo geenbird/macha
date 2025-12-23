@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idle Combat Prototype</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Game Area -->
+        <div id="game-container">
+            <canvas id="battle-canvas" width="800" height="400"></canvas>
+        </div>
+
+        <!-- Controls Area -->
+        <div id="controls-container">
+            <div class="panel" id="team-a-panel">
+                <h2>Team A</h2>
+                <div class="character-config" id="char-a-config">
+                    <div class="slot-controls">
+                        <label>Member:
+                            <select id="team-a-slot">
+                                <option value="0">Slot 1</option>
+                                <option value="1">Slot 2</option>
+                                <option value="2">Slot 3</option>
+                            </select>
+                        </label>
+                    </div>
+                    <label>Character Type:
+                        <select id="char-a-type"></select>
+                    </label>
+                    <label>Weapon 1:
+                        <select id="char-a-w1"></select>
+                    </label>
+                    <label>Weapon 2:
+                        <select id="char-a-w2"></select>
+                    </label>
+
+                    <div class="skill-sequencer">
+                        <h3>Skill Queue</h3>
+                        <div id="char-a-pool" class="skill-pool"></div>
+                        <div id="char-a-queue" class="skill-queue-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel center-panel">
+                <button id="btn-start">Start Battle</button>
+                <button id="btn-reset">Reset</button>
+                <div id="log-console"></div>
+            </div>
+
+            <div class="panel" id="team-b-panel">
+                <h2>Team B</h2>
+                <div class="character-config" id="char-b-config">
+                    <div class="slot-controls">
+                        <label>Member:
+                            <select id="team-b-slot">
+                                <option value="0">Slot 1</option>
+                                <option value="1">Slot 2</option>
+                                <option value="2">Slot 3</option>
+                            </select>
+                        </label>
+                    </div>
+                    <label>Character Type:
+                        <select id="char-b-type"></select>
+                    </label>
+                    <label>Weapon 1:
+                        <select id="char-b-w1"></select>
+                    </label>
+                    <label>Weapon 2:
+                        <select id="char-b-w2"></select>
+                    </label>
+
+                    <div class="skill-sequencer">
+                        <h3>Skill Queue</h3>
+                        <div id="char-b-pool" class="skill-pool"></div>
+                        <div id="char-b-queue" class="skill-queue-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

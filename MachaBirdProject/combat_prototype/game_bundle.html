@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idle Combat Prototype (Bundle)</title>
+    <style>
+        /* CSS from style.css */
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2a2a2a;
+            --text-color: #e0e0e0;
+            --accent: #4caf50;
+            --danger: #f44336;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        #game-container {
+            display: flex;
+            justify-content: center;
+            background: #000;
+            border: 2px solid #444;
+            border-radius: 8px;
+        }
+
+        #battle-canvas {
+            width: 800px;
+            height: 400px;
+            background: #111;
+        }
+
+        #controls-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            /* Enable scrolling if content overflows */
+        }
+
+        .center-panel {
+            flex: 0.5;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #btn-reset {
+            background: #555;
+            margin-top: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 5px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+
+        .skill-sequencer {
+            margin-top: 10px;
+            border: 1px solid #444;
+            padding: 5px;
+            border-radius: 4px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .skill-pool,
+        .skill-queue-list {
+            min-height: 50px;
+            background: #222;
+            margin-bottom: 5px;
+            padding: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-content: flex-start;
+        }
+
+        .skill-chip {
+            padding: 4px 8px;
+            background: #444;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .skill-chip:hover {
+            background: #555;
+        }
+
+        .skill-chip.in-queue {
+            background: var(--accent);
+        }
+
+        #log-console {
+            margin-top: auto;
+            width: 100%;
+            height: 150px;
+            background: #000;
+            font-family: monospace;
+            font-size: 12px;
+            color: #0f0;
+            overflow-y: auto;
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <h1>Idle Combat Prototype</h1>
+
+        <div id="game-container">
+            <canvas id="battle-canvas" width="800" height="400"></canvas>
+        </div>
+
+        <div id="controls-container">
+            <!-- Team A Control -->
+            <div class="panel" id="team-a-section">
+                <h2>Team A (Red)</h2>
+
+                <!-- Slot Selector -->
+                <div>
+                    <label>Member Slot:</label>
+                    <select id="team-a-slot">
+                        <option value="0">Member 1</option>
+                        <option value="1">Member 2</option>
+                        <option value="2">Member 3</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Class:</label>
+                    <select id="char-a-type"></select>
+                </div>
+                <div>
+                    <label>Weapon 1:</label>
+                    <select id="char-a-w1"></select>
+                </div>
+                <div>
+                    <label>Weapon 2:</label>
+                    <select id="char-a-w2"></select>
+                </div>
+
+                <div class="skill-sequencer">
+                    <h3>Skill Queue</h3>
+                    <div id="char-a-queue" class="skill-queue-list"></div>
+                    <h3>Available Skills</h3>
+                    <div id="char-a-pool" class="skill-pool"></div>
+                </div>
+            </div>
+
+            <!-- Center Controls -->
+            <div class="panel center-panel">
+                <button id="btn-start">Start Battle</button>
+                <button id="btn-reset">Reset</button>
+                <div style="margin-top: 10px; text-align: center;">
+                    <label style="cursor: pointer;">
+                        <input type="checkbox" id="chk-vs-ai" checked> Play vs AI
+                    </label>
+                </div>
+                <div id="log-console"></div>
+            </div>
+
+            <!-- Team B Control -->
+            <div class="panel" id="team-b-section">
+                <h2>Team B (Green)</h2>
+
+                <!-- Slot Selector -->
+                <div>
+                    <label>Member Slot:</label>
+                    <select id="team-b-slot">
+                        <option value="0">Member 1</option>
+                        <option value="1">Member 2</option>
+                        <option value="2">Member 3</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Class:</label>
+                    <select id="char-b-type"></select>
+                </div>
+                <div>
+                    <label>Weapon 1:</label>
+                    <select id="char-b-w1"></select>
+                </div>
+                <div>
+                    <label>Weapon 2:</label>
+                    <select id="char-b-w2"></select>
+                </div>
+
+                <div class="skill-sequencer">
+                    <h3>Skill Queue</h3>
+                    <div id="char-b-queue" class="skill-queue-list"></div>
+                    <h3>Available Skills</h3>
+                    <div id="char-b-pool" class="skill-pool"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // BUNDLED JS
+
+        // *** data.js ***
+        const SKILL_TYPE = {
+            MELEE: 'MELEE',
+            RANGED: 'RANGED',
+            HEAL: 'HEAL',
+            BUFF: 'BUFF'
+        };
+
+        class Skill {
+            constructor(id, name, range, damage, castTime, cooldown, type = SKILL_TYPE.MELEE) {
+                this.id = id;
+                this.name = name;
+                this.range = range;
+                this.damage = damage;
+                this.castTime = castTime; // in seconds
+                this.cooldown = cooldown; // in seconds
+                this.type = type;
+            }
+        }
+
+        const SKILLS = {
+            // Basic
+            'punch': new Skill('punch', 'Punch', 50, 10, 0.5, 0, SKILL_TYPE.MELEE),
+            'shoot': new Skill('shoot', 'Shoot', 300, 8, 0.3, 0, SKILL_TYPE.RANGED),
+
+            // Sword Skills
+            'slash': new Skill('slash', 'Slash', 60, 15, 0.8, 0, SKILL_TYPE.MELEE),
+            'thrust': new Skill('thrust', 'Thrust', 70, 20, 1.0, 0, SKILL_TYPE.MELEE),
+
+            // Dagger Skills
+            'quick_stab': new Skill('quick_stab', 'Quick Stab', 40, 8, 0.3, 0, SKILL_TYPE.MELEE),
+
+            // Axe Skills
+            'cleave': new Skill('cleave', 'Cleave', 70, 25, 1.2, 0, SKILL_TYPE.MELEE),
+            'smash': new Skill('smash', 'Smash', 60, 35, 1.5, 0, SKILL_TYPE.MELEE),
+
+            // Bow/Crossbow Skills
+            'power_shot': new Skill('power_shot', 'Power Shot', 400, 25, 1.5, 0, SKILL_TYPE.RANGED),
+            'rapid_fire': new Skill('rapid_fire', 'Rapid Fire', 250, 5, 0.2, 0, SKILL_TYPE.RANGED),
+            'snipe': new Skill('snipe', 'Snipe', 500, 40, 2.0, 0, SKILL_TYPE.RANGED),
+
+            // Magic Skills
+            'fireball': new Skill('fireball', 'Fireball', 200, 30, 2.0, 0, SKILL_TYPE.RANGED),
+            'frostbolt': new Skill('frostbolt', 'Frostbolt', 250, 15, 1.5, 0, SKILL_TYPE.RANGED), // Should slow?
+            'ice_wall': new Skill('ice_wall', 'Ice Shard', 300, 20, 1.8, 0, SKILL_TYPE.RANGED),
+
+            // Healing
+            'heal': new Skill('heal', 'Heal', 500, -20, 1.5, 0, SKILL_TYPE.HEAL),
+            'greater_heal': new Skill('greater_heal', 'Greater Heal', 500, -50, 3.0, 0, SKILL_TYPE.HEAL),
+        };
+
+        const WEAPONS = {
+            'fists': { name: 'Fists', skills: ['punch'] },
+            'dagger': { name: 'Dagger', skills: ['quick_stab'] },
+            'iron_sword': { name: 'Iron Sword', skills: ['slash', 'thrust'] },
+            'great_axe': { name: 'Great Axe', skills: ['cleave', 'smash'] },
+            'wood_bow': { name: 'Wooden Bow', skills: ['shoot', 'power_shot'] },
+            'crossbow': { name: 'Crossbow', skills: ['shoot', 'snipe'] },
+            'magic_wand': { name: 'Magic Wand', skills: ['fireball', 'heal'] },
+            'ice_staff': { name: 'Ice Staff', skills: ['frostbolt', 'ice_wall'] },
+            'cleric_tome': { name: 'Cleric Tome', skills: ['heal', 'greater_heal'] }
+        };
+
+        const CHARACTERS = {
+            'warrior': { name: 'Warrior', hp: 100, speed: 60, baseSkill: 'punch', color: '#ff4444', classType: 'MELEE' },
+            'archer': { name: 'Archer', hp: 80, speed: 100, baseSkill: 'shoot', color: '#44ff44', classType: 'RANGED' },
+            'mage': { name: 'Mage', hp: 70, speed: 50, baseSkill: 'punch', color: '#4444ff', classType: 'RANGED' }
+        };
+
+        // *** entities.js ***
+        const CHAR_STATE = {
+            IDLE: 'IDLE',
+            MOVING: 'MOVING',
+            CASTING: 'CASTING',
+            RECOVER: 'RECOVER', // Post-cast delay
+            DEAD: 'DEAD'
+        };
+
+        class BattleCharacter {
+            constructor(id, teamId, template, skillQueue, startX) {
+                this.id = id;
+                this.teamId = teamId;
+                this.name = template.name;
+                this.maxHp = template.hp;
+                this.hp = template.hp;
+                this.moveSpeed = template.speed; // pixels per second
+                this.color = template.color;
+                this.classType = template.classType;
+
+                // Logical Position (1D)
+                this.x = startX;
+
+                // Visual Position (Calculated later)
+                this.visualPos = { x: startX, y: 200, scale: 1 };
+                this.targetVisualY = 200; // Target Y for lerping
+
+                this.target = null; // Current target character
+
+                // Combat state
+                this.state = CHAR_STATE.IDLE;
+                this.stateTimer = 0; // Generic timer for states
+
+                // Skill Logic
+                this.skillQueue = skillQueue; // Array of skill IDs
+                this.queueIndex = 0; // Current index in loop
+                this.currentSkillId = null;
+            }
+
+            update(dt, enemies, allies) {
+                if (this.state === CHAR_STATE.DEAD) return;
+
+                // 1. Find Target if none or dead
+                if (!this.target || this.target.state === CHAR_STATE.DEAD) {
+                    this.findTarget(enemies);
+                }
+
+                // If still no target (enemies all dead), just idle
+                if (!this.target) {
+                    this.state = CHAR_STATE.IDLE;
+                    return;
+                }
+
+                // 2. Logic State Machine
+                switch (this.state) {
+                    case CHAR_STATE.IDLE:
+                        // Pick next skill
+                        this.pickNextSkill();
+                        // Check range immediately
+                        if (this.checkRange()) {
+                            this.startCasting();
+                        } else {
+                            this.state = CHAR_STATE.MOVING;
+                        }
+                        break;
+
+                    case CHAR_STATE.MOVING:
+                        // Move towards target
+                        if (this.checkRange()) {
+                            this.state = CHAR_STATE.IDLE; // Arrived, next frame will switch to casting
+                        } else {
+                            this.moveTowards(this.target.x, dt);
+                        }
+                        break;
+
+                    case CHAR_STATE.CASTING:
+                        this.stateTimer -= dt;
+                        if (this.stateTimer <= 0) {
+                            this.applySkillEffect(enemies); // Pass enemies for AOE
+                            // Go to recover or idle
+                            this.state = CHAR_STATE.RECOVER;
+                            this.stateTimer = 0.2; // Small backswing
+                        }
+                        break;
+
+                    case CHAR_STATE.RECOVER:
+                        this.stateTimer -= dt;
+                        if (this.stateTimer <= 0) {
+                            this.advanceQueue();
+                            this.state = CHAR_STATE.IDLE;
+                        }
+                        break;
+                }
+            }
+
+            findTarget(enemies) {
+                // Simple logic: closest live enemy
+                let minDist = Infinity;
+                let closest = null;
+                for (const e of enemies) {
+                    if (e.state === CHAR_STATE.DEAD) continue;
+                    const d = this.getDist(e);
+                    if (d < minDist) {
+                        minDist = d;
+                        closest = e;
+                    }
+                }
+                this.target = closest;
+            }
+
+            pickNextSkill() {
+                // Find next VALID skill based on class logic
+                // We might need to loop if we skip
+                const startIdx = this.queueIndex;
+                let loops = 0;
+
+                while (loops < this.skillQueue.length + 1) {
+                    let skillId = null;
+                    if (this.skillQueue.length === 0) {
+                        skillId = 'punch';
+                    } else {
+                        skillId = this.skillQueue[this.queueIndex];
+                    }
+
+                    const skill = SKILLS[skillId];
+                    this.currentSkillId = skillId; // Temporarily set to check range
+
+                    // AI SKIP LOGIC
+                    const inRange = this.checkRange();
+
+                    const isMeleeClass = (this.classType === 'MELEE');
+                    const isRangedSkill = (skill.type === SKILL_TYPE.RANGED || skill.type === SKILL_TYPE.HEAL); // Heal treat as ranged?
+
+                    let skip = false;
+
+                    // Warrior (Melee) skips Ranged Attack if NOT in range.
+                    if (isMeleeClass && isRangedSkill && !inRange) {
+                        skip = true;
+                    }
+
+                    // Archer/Mage (Ranged) skips Melee Attack if NOT in range.
+                    if (!isMeleeClass && !isRangedSkill && !inRange) {
+                        skip = true;
+                    }
+
+                    if (skip) {
+                        console.log(`${this.name} skipped ${skill.name} (Out of Range)`);
+                        this.advanceQueue();
+                        loops++;
+                        // If queue empty or single item, might loop forever if we don't break
+                        if (this.skillQueue.length === 0) break;
+                    } else {
+                        // Found a valid skill to try (either in range, or we need to move to it)
+                        break;
+                    }
+                }
+            }
+
+            getCurrentSkill() {
+                return SKILLS[this.currentSkillId];
+            }
+
+            checkRange() {
+                if (!this.target) return false;
+                const skill = this.getCurrentSkill();
+                const dist = this.getDist(this.target);
+                return dist <= (skill.range + 20); // +20 buffer
+            }
+
+            moveTowards(targetX, dt) {
+                // Move towards target but STOP at skill range
+                const skill = this.getCurrentSkill();
+                const requiredRange = skill ? skill.range : 20;
+
+                const diff = targetX - this.x;
+                const dist = Math.abs(diff);
+
+                if (dist > requiredRange) {
+                    const dir = Math.sign(diff);
+                    const moveAmt = this.moveSpeed * dt;
+
+                    // Move only as much as needed to reach range
+                    this.x += dir * moveAmt;
+                }
+            }
+
+            startCasting() {
+                const skill = this.getCurrentSkill();
+                this.state = CHAR_STATE.CASTING;
+                this.stateTimer = skill.castTime;
+            }
+
+            // Helper to actually apply damage
+            applySkillEffect(enemies) {
+                if (!this.target) return; // Allow dead target for AOE center?
+
+                const skill = this.getCurrentSkill();
+
+                if (skill.id === 'fireball') {
+                    // AOE LOGIC
+                    const aoeCenter = this.target.x;
+                    const aoeRadius = 100; // Arbitrary AOE width
+
+                    let hitCount = 0;
+                    enemies.forEach(e => {
+                        if (e.state === CHAR_STATE.DEAD) return;
+                        if (Math.abs(e.x - aoeCenter) <= aoeRadius) {
+                            e.takeDamage(skill.damage);
+                            hitCount++;
+                        }
+                    });
+                    console.log(`${this.name} cast Fireball hitting ${hitCount} enemies`);
+
+                } else if (skill.type === SKILL_TYPE.HEAL) {
+                    this.hp -= skill.damage;
+                    if (this.hp > this.maxHp) this.hp = this.maxHp;
+                    console.log(`${this.name} cast ${skill.name} on self`);
+                } else {
+                    // Single Target
+                    if (this.target.state !== CHAR_STATE.DEAD) {
+                        this.target.takeDamage(skill.damage);
+                        console.log(`${this.name} cast ${skill.name} on ${this.target.name}`);
+                    }
+                }
+            }
+
+            takeDamage(amount) {
+                this.hp -= amount;
+                if (this.hp <= 0) {
+                    this.hp = 0;
+                    this.state = CHAR_STATE.DEAD;
+                }
+            }
+
+            advanceQueue() {
+                this.queueIndex++;
+                if (this.queueIndex >= this.skillQueue.length) {
+                    this.queueIndex = 0;
+                }
+            }
+
+            getDist(other) {
+                return Math.abs(this.x - other.x);
+            }
+        }
+
+        // *** renderer.js ***
+        class Renderer {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+            }
+
+            draw(battleManager) {
+                this.clear();
+                this.drawBackground();
+
+                // Z-SORT: Draw characters with higher visualPos.y (closer) LAST.
+                // Wait, previous code said "a.y - b.y", which puts smaller Y first.
+                // In standard coordinates, small Y is Top (Background), large Y is Bottom (Foreground).
+                // So Sort Ascending Y means Back to Front. Correct.
+                const sortedChars = [...battleManager.characters].sort((a, b) => a.visualPos.y - b.visualPos.y);
+
+                sortedChars.forEach(char => {
+                    this.drawCharacter(char);
+                });
+            }
+
+            clear() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            drawBackground() {
+                this.ctx.fillStyle = '#111';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+
+                // Draw Main Lane
+                this.ctx.strokeStyle = '#333';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, 200);
+                this.ctx.lineTo(this.width, 200);
+                this.ctx.stroke();
+            }
+
+            drawCharacter(char) {
+                if (char.state === CHAR_STATE.DEAD) return;
+
+                const cx = char.visualPos.x;
+                const cy = char.visualPos.y;
+                const scale = char.visualPos.scale || 1;
+                const radius = 20 * scale;
+
+                // Draw Cast Selection Ring or Range
+                if (char.state === CHAR_STATE.CASTING) {
+                    const skill = char.getCurrentSkill();
+                    if (skill) {
+                        this.ctx.beginPath();
+                        this.ctx.ellipse(cx, cy, skill.range * scale, (skill.range * 0.3) * scale, 0, 0, Math.PI * 2);
+                        this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.2)';
+                        this.ctx.stroke();
+                    }
+                }
+
+                // Body
+                this.ctx.beginPath();
+                this.ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                this.ctx.fillStyle = char.color;
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Direction Indicator
+                if (char.target) {
+                    const dirX = Math.sign(char.target.x - char.x);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(cx, cy);
+                    this.ctx.lineTo(cx + (dirX * 30 * scale), cy);
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.stroke();
+                }
+
+                // HP Bar (Scaled)
+                const hpPct = char.hp / char.maxHp;
+                const barW = 40 * scale;
+                const barH = 5 * scale;
+                this.ctx.fillStyle = 'red';
+                this.ctx.fillRect(cx - (barW / 2), cy - radius - (15 * scale), barW, barH);
+                this.ctx.fillStyle = '#0f0';
+                this.ctx.fillRect(cx - (barW / 2), cy - radius - (15 * scale), barW * hpPct, barH);
+
+                // Name
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = `${10 * scale}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(char.name, cx, cy + radius + (15 * scale));
+
+                // State Text
+                this.ctx.fillStyle = '#aaa';
+                this.ctx.fillText(char.state, cx, cy - radius - (20 * scale));
+
+                // Casting Bar
+                if (char.state === CHAR_STATE.CASTING) {
+                    const skill = char.getCurrentSkill();
+                    const pct = 1.0 - (char.stateTimer / skill.castTime);
+
+                    this.ctx.fillStyle = 'yellow';
+                    this.ctx.fillRect(cx - (barW / 2), cy - radius - (10 * scale), barW * pct, 3 * scale);
+                }
+            }
+        }
+
+        // *** game.js ***
+        class BattleManager {
+            constructor() {
+                this.characters = []; // All characters
+                this.onLog = (msg) => { }; // Callback for logging
+                this.running = false;
+            }
+
+            // configs: { teamA: {char, w1, w2, skillQueue}, teamB: ... }
+            initialize(charConfigs) {
+                this.characters = [];
+                this.running = false;
+
+                // Spawn Team A at X=100
+                this.spawnTeam('A', charConfigs.teamA, 100);
+                // Spawn Team B at X=700
+                this.spawnTeam('B', charConfigs.teamB, 700);
+
+                this.log("Battle Initialized (1D Lane).");
+            }
+
+            spawnTeam(teamId, configList, startX) {
+                configList.forEach((cfg, idx) => {
+                    const char = new BattleCharacter(
+                        `${teamId}_${idx + 1}`,
+                        teamId,
+                        cfg.template,
+                        cfg.skillQueue,
+                        startX
+                    );
+                    this.characters.push(char);
+                });
+            }
+
+            start() {
+                if (this.characters.length === 0) return;
+                this.running = true;
+                this.log("Battle Started!");
+            }
+
+            pause() {
+                this.running = false;
+                this.log("Battle Paused.");
+            }
+
+            update(dt) {
+                if (!this.running) return;
+
+                const teamA = this.characters.filter(c => c.teamId === 'A');
+                const teamB = this.characters.filter(c => c.teamId === 'B');
+
+                // Check Win Condition
+                if (this.isTeamDead(teamA)) {
+                    this.running = false;
+                    this.log("Team B Wins!");
+                    return;
+                }
+                if (this.isTeamDead(teamB)) {
+                    this.running = false;
+                    this.log("Team A Wins!");
+                    return;
+                }
+
+                // Update Characters
+                this.characters.forEach(char => {
+                    const enemies = char.teamId === 'A' ? teamB : teamA;
+                    const allies = char.teamId === 'A' ? teamA : teamB;
+                    char.update(dt, enemies, allies);
+                });
+
+                // Resolve Visual Overlaps (Perspective)
+                this.resolveVisualPositions(dt);
+            }
+
+            resolveVisualPositions(dt) {
+                const centerY = 200;
+                const sorted = [...this.characters].sort((a, b) => a.x - b.x);
+
+                // 1. Calculate TARGET Ys
+                for (let i = 0; i < sorted.length; i++) {
+                    const char = sorted[i];
+                    const cluster = [char];
+                    let j = i + 1;
+                    while (j < sorted.length && Math.abs(sorted[j].x - char.x) < 40) {
+                        cluster.push(sorted[j]);
+                        j++;
+                    }
+
+                    if (cluster.length > 1) {
+                        const spread = 30;
+                        const startOff = -((cluster.length - 1) * spread) / 2;
+                        cluster.forEach((c, idx) => {
+                            const offY = startOff + (idx * spread);
+                            c.targetVisualY = centerY + offY;
+                        });
+                        i = j - 1;
+                    } else {
+                        char.targetVisualY = centerY;
+                    }
+                }
+
+                // 2. Apply Smoothing (Lerp) & Scale
+                this.characters.forEach(char => {
+                    char.visualPos.y += (char.targetVisualY - char.visualPos.y) * 0.1;
+                    char.visualPos.x = char.x;
+                    const offY = char.visualPos.y - centerY;
+                    const norm = (offY + 45) / 90;
+                    char.visualPos.scale = 0.85 + (norm * 0.3);
+                });
+            }
+
+            isTeamDead(team) {
+                return team.every(c => c.state === CHAR_STATE.DEAD);
+            }
+
+            setLogCallback(fn) {
+                this.onLog = fn;
+            }
+
+            log(msg) {
+                if (this.onLog) this.onLog(msg);
+                console.log(`[Battle] ${msg}`);
+            }
+        }
+
+        // *** ai.js ***
+        class AIOpponent {
+            static generateRandomTeam(teamId) {
+                const team = [];
+                for (let i = 0; i < 3; i++) {
+                    team.push(this.createRandomCharacter());
+                }
+                return team;
+            }
+
+            static createRandomCharacter() {
+                // 1. Pick a random Class
+                const classKeys = Object.keys(CHARACTERS);
+                const type = classKeys[Math.floor(Math.random() * classKeys.length)];
+
+                // 2. Pick Weapons suitable for the class (Loose Logic)
+                // Warriors prefer Melee, Archers prefer Ranged, Mages prefer Magic
+                // But we can be purely random or weighted. Let's do purely random but filtered by "sensible" types?
+                // Actually, let's just pick ANY random weapons for chaos/fun as per "diverse" request,
+                // OR filter by generic type to avoid "Mage with Great Axe" animation issues if any? 
+                // Prototype has no animation limits, but let's try to be slightly thematic.
+
+                const w1 = this.pickRandomWeapon(type);
+                const w2 = this.pickRandomWeapon(type);
+
+                // 3. Generate Skill Queue (5-8 skills)
+                const queue = [];
+                const queueLength = 5 + Math.floor(Math.random() * 4); // 5 to 8
+
+                // Pool of available skills: Base + W1 + W2
+                const pool = [];
+                if (CHARACTERS[type].baseSkill) pool.push(CHARACTERS[type].baseSkill);
+                if (WEAPONS[w1].skills) pool.push(...WEAPONS[w1].skills);
+                if (WEAPONS[w2].skills) pool.push(...WEAPONS[w2].skills);
+
+                for (let k = 0; k < queueLength; k++) {
+                    const skillId = pool[Math.floor(Math.random() * pool.length)];
+                    queue.push(skillId);
+                }
+
+                return {
+                    type: type,
+                    w1: w1,
+                    w2: w2,
+                    queue: queue // Note: UI uses 'queue', BattleManager uses 'skillQueue' in wrapper config
+                };
+            }
+
+            static pickRandomWeapon(classType) {
+                const keys = Object.keys(WEAPONS);
+                // Optional: Bias
+                // if (classType === 'warrior') return ...
+                // For now, pure random is more "diverse"
+                return keys[Math.floor(Math.random() * keys.length)];
+            }
+        }
+
+        // *** ui.js ***
+        class UIManager {
+            constructor(battleManager, onConfigChange) {
+                this.battleRef = battleManager;
+                this.onConfigChange = onConfigChange; // Call when user hits start
+                this.teams = {
+                    A: this.createDefaultTeamConfig('warrior'),
+                    B: this.createDefaultTeamConfig('archer')
+                };
+                this.currentSlots = { A: 0, B: 0 };
+                this.vsAI = true; // Default
+                this.initDOM();
+            }
+
+            createDefaultTeamConfig(defaultType) {
+                return [0, 1, 2].map(() => ({
+                    type: defaultType,
+                    w1: 'fists',
+                    w2: 'fists',
+                    queue: []
+                }));
+            }
+
+            initDOM() {
+                this.setupPanel('A');
+                this.setupPanel('B');
+
+                document.getElementById('btn-start').onclick = () => {
+                    const config = this.buildConfig();
+                    this.onConfigChange(config);
+                };
+
+                document.getElementById('btn-reset').onclick = () => {
+                    this.battleRef.initialize(this.buildConfig());
+                };
+
+                // AI Toggle
+                const aiChk = document.getElementById('chk-vs-ai');
+                this.vsAI = aiChk.checked;
+                this.toggleAiMode(this.vsAI);
+
+                aiChk.onchange = (e) => {
+                    this.vsAI = e.target.checked;
+                    this.toggleAiMode(this.vsAI);
+                };
+
+                this.logElem = document.getElementById('log-console');
+                this.battleRef.setLogCallback((msg) => {
+                    const div = document.createElement('div');
+                    div.textContent = msg;
+                    this.logElem.appendChild(div);
+                    this.logElem.scrollTop = this.logElem.scrollHeight;
+                });
+            }
+
+            toggleAiMode(enabled) {
+                const teamBPanel = document.getElementById('team-b-section');
+                if (enabled) {
+                    teamBPanel.style.opacity = '0.5';
+                    teamBPanel.style.pointerEvents = 'none';
+                    teamBPanel.style.filter = 'grayscale(100%)';
+                } else {
+                    teamBPanel.style.opacity = '1';
+                    teamBPanel.style.pointerEvents = 'auto';
+                    teamBPanel.style.filter = 'none';
+                }
+            }
+
+            setupPanel(teamId) {
+                const pfx = `char-${teamId.toLowerCase()}`;
+                const slotSel = document.getElementById(`team-${teamId.toLowerCase()}-slot`);
+                slotSel.onchange = (e) => {
+                    this.currentSlots[teamId] = parseInt(e.target.value);
+                    this.refreshPanel(teamId);
+                };
+
+                const typeSel = document.getElementById(`${pfx}-type`);
+                this.populateSelect(typeSel, CHARACTERS);
+                typeSel.onchange = (e) => this.onSelectionChange(teamId, 'type', e.target.value);
+
+                const w1Sel = document.getElementById(`${pfx}-w1`);
+                this.populateSelect(w1Sel, WEAPONS);
+                w1Sel.onchange = (e) => this.onSelectionChange(teamId, 'w1', e.target.value);
+
+                const w2Sel = document.getElementById(`${pfx}-w2`);
+                this.populateSelect(w2Sel, WEAPONS);
+                w2Sel.onchange = (e) => this.onSelectionChange(teamId, 'w2', e.target.value);
+
+                this.refreshPanel(teamId);
+            }
+
+            refreshPanel(teamId) {
+                const slotIdx = this.currentSlots[teamId];
+                const data = this.teams[teamId][slotIdx];
+                const pfx = `char-${teamId.toLowerCase()}`;
+
+                document.getElementById(`${pfx}-type`).value = data.type;
+                document.getElementById(`${pfx}-w1`).value = data.w1;
+                document.getElementById(`${pfx}-w2`).value = data.w2;
+
+                this.updateSkillPool(teamId);
+            }
+
+            populateSelect(elem, sourceObj) {
+                elem.innerHTML = '';
+                for (const [key, val] of Object.entries(sourceObj)) {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = val.name;
+                    elem.appendChild(opt);
+                }
+            }
+
+            onSelectionChange(teamId, field, value) {
+                const slotIdx = this.currentSlots[teamId];
+                this.teams[teamId][slotIdx][field] = value;
+                this.updateSkillPool(teamId);
+            }
+
+            updateSkillPool(teamId) {
+                const pfx = `char-${teamId.toLowerCase()}`;
+                const poolDiv = document.getElementById(`${pfx}-pool`);
+                const slotIdx = this.currentSlots[teamId];
+                const data = this.teams[teamId][slotIdx];
+
+                poolDiv.innerHTML = '';
+                const availableSkills = new Set();
+                const charData = CHARACTERS[data.type];
+                if (charData.baseSkill) availableSkills.add(charData.baseSkill);
+
+                const w1Data = WEAPONS[data.w1];
+                if (w1Data && w1Data.skills) w1Data.skills.forEach(s => availableSkills.add(s));
+
+                const w2Data = WEAPONS[data.w2];
+                if (w2Data && w2Data.skills) w2Data.skills.forEach(s => availableSkills.add(s));
+
+                availableSkills.forEach(skillId => {
+                    const skillDef = SKILLS[skillId];
+                    if (!skillDef) return;
+
+                    const chip = document.createElement('div');
+                    chip.className = 'skill-chip';
+                    chip.textContent = skillDef.name;
+                    chip.onclick = () => this.addToQueue(teamId, skillId);
+                    poolDiv.appendChild(chip);
+                });
+
+                const newQueue = data.queue.filter(sId => availableSkills.has(sId));
+                if (newQueue.length !== data.queue.length) {
+                    data.queue = newQueue;
+                }
+
+                this.renderQueue(teamId);
+            }
+
+            addToQueue(teamId, skillId) {
+                const slotIdx = this.currentSlots[teamId];
+                this.teams[teamId][slotIdx].queue.push(skillId);
+                this.renderQueue(teamId);
+            }
+
+            removeFromQueue(teamId, index) {
+                const slotIdx = this.currentSlots[teamId];
+                this.teams[teamId][slotIdx].queue.splice(index, 1);
+                this.renderQueue(teamId);
+            }
+
+            renderQueue(teamId) {
+                const pfx = `char-${teamId.toLowerCase()}`;
+                const queueDiv = document.getElementById(`${pfx}-queue`);
+                const slotIdx = this.currentSlots[teamId];
+                const data = this.teams[teamId][slotIdx];
+
+                queueDiv.innerHTML = '';
+                data.queue.forEach((skillId, idx) => {
+                    const skillDef = SKILLS[skillId];
+                    const chip = document.createElement('div');
+                    chip.className = 'skill-chip in-queue';
+                    chip.textContent = `${idx + 1}. ${skillDef ? skillDef.name : skillId}`;
+                    chip.onclick = () => this.removeFromQueue(teamId, idx);
+                    queueDiv.appendChild(chip);
+                });
+            }
+
+            buildConfig() {
+                // Team A is always Manual
+                const configTeamA = this.teams.A.map(d => ({
+                    template: CHARACTERS[d.type],
+                    skillQueue: [...d.queue]
+                }));
+
+                // Team B: AI or Manual
+                let configTeamB;
+                if (this.vsAI) {
+                    // Generate Random Team
+                    const randomTeam = AIOpponent.generateRandomTeam('B');
+                    configTeamB = randomTeam.map(d => ({
+                        template: CHARACTERS[d.type],
+                        skillQueue: [...d.queue]
+                    }));
+                    console.log("Generated AI Team:", configTeamB);
+                } else {
+                    configTeamB = this.teams.B.map(d => ({
+                        template: CHARACTERS[d.type],
+                        skillQueue: [...d.queue]
+                    }));
+                }
+
+                return {
+                    teamA: configTeamA,
+                    teamB: configTeamB
+                };
+            }
+        }
+
+        // *** main.js (Entry Point) ***
+
+        // Global Engine instances
+        const battleManager = new BattleManager();
+        const renderer = new Renderer('battle-canvas');
+
+        // Game Loop
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            // Cap dt for safety
+            const safeDt = Math.min(dt, 0.1);
+
+            battleManager.update(safeDt);
+            renderer.draw(battleManager);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialization
+        window.onload = () => {
+            const ui = new UIManager(battleManager, (config) => {
+                battleManager.initialize(config);
+                battleManager.start();
+            });
+
+            // Start with a default init
+            const defaultConfig = ui.buildConfig();
+            battleManager.initialize(defaultConfig);
+
+            // Start Loop
+            requestAnimationFrame(gameLoop);
+        };
+
+    </script>
+</body>
+
+</html>
